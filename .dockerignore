@@ -1,0 +1,6 @@
+.git
+uploads
+.env
+config.php
+*.log
+backups

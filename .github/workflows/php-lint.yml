@@ -1,0 +1,13 @@
+name: PHP syntax
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check PHP syntax with deployment image
+        run: |
+          docker build -t komi-voice-lint deploy/php
+          docker run --rm -v "$PWD:/app:ro" -w /app komi-voice-lint sh -ec 'for file in $(find . -name "*.php" -type f); do php -l "$file"; done'

@@ -1,0 +1,40 @@
+name: fulab-vk
+services:
+  db:
+    image: mariadb:11.4
+    restart: unless-stopped
+    mem_limit: 512m
+    environment:
+      MARIADB_DATABASE: fu_lab_komi
+      MARIADB_USER: fu_lab
+      MARIADB_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD}
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?set DB_ROOT_PASSWORD}
+    volumes:
+      - db_data:/var/lib/mysql
+    healthcheck:
+      test: [CMD, healthcheck.sh, --connect, --innodb_initialized]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+  web:
+    image: fulab-vk-php:local
+    build: deploy/php
+    restart: unless-stopped
+    mem_limit: 384m
+    working_dir: /var/www/html/vk_bot
+    ports:
+      - 127.0.0.1:8085:80
+    env_file: .env
+    environment:
+      APACHE_RUN_USER: '#${LOCAL_UID:?set LOCAL_UID}'
+      APACHE_RUN_GROUP: '#${LOCAL_GID:?set LOCAL_GID}'
+    volumes:
+      - .:/var/www/html/vk_bot:ro
+      - ./uploads:/var/www/html/vk_bot/uploads:rw
+      - ./bot.log:/var/www/html/vk_bot/bot.log:rw
+      - ./deploy/php/site.conf:/etc/apache2/sites-available/000-default.conf:ro
+    depends_on:
+      db:
+        condition: service_healthy
+volumes:
+  db_data:
