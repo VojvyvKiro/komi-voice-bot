@@ -86,16 +86,20 @@ function ask_consent(int $peerId): void
 
 function show_phrase(int $peerId, array $phrase): void
 {
-    // Any saved recording means the participant already knows how to send audio.
-    // Keep the hint after skips; rejection/undo must not reset onboarding.
+    // Skipping keeps the hint; any saved recording (even rejected) ends onboarding.
     $hasRecording = db_val('SELECT 1 FROM recordings r
         JOIN speakers s ON s.id = r.speaker_id
         WHERE s.vk_id = ? LIMIT 1', [$peerId]);
-    $text = "«" . $phrase['text'] . "»";
-    if (!$hasRecording) {
-        $text .= "\n\nТайӧ сёрникузясӧ лыддьы шыӧн да ысты аудиоюӧрӧн. " .
-            "Сёрнит аслыд велалӧм ногӧн, водзӧ шыбитчытӧг.";
+    $text = "«" . $phrase['text'] . "»\n\u{2800}\n\u{2800}\n\u{2800}\n☼ ☼ ☼";
+    $keys = active_keyboard($peerId);
+    $messageId = vk_send_message_id($peerId, $text, $keys);
+    if (!$hasRecording && $messageId !== null) {
+        vk_send_message_id(
+            $peerId,
+            'Кутӧмӧн личкы микрофон пас да лыддьы тайӧ сёрникузясӧ горӧн. ' .
+            '«Водзӧ» кнопка сетӧ мӧд сёрникузя.',
+            $keys,
+            $messageId
+        );
     }
-    $text .= "\n\u{2800}\n\u{2800}\n\u{2800}\n☼ ☼ ☼";
-    vk_send($peerId, $text, active_keyboard($peerId));
 }

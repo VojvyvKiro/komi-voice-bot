@@ -196,9 +196,12 @@ function handle_voice(array $speaker, array $audio, string $eventKey): void
         vk_send($peerId, 'Эз артмы видзны аудиоюӧртӧ. Ысты нӧшта ӧтчыд.', active_keyboard($peerId));
         return;
     }
+    $isFirstRecording = !db_val('SELECT 1 FROM recordings WHERE speaker_id = ? LIMIT 1', [$id]);
     if (!recording_commit($id, (int)$phrase['id'], $file, $duration, $eventKey)) {
         unlink(UPLOAD_DIR . '/' . $file);
         vk_send($peerId, 'Аудиоюӧрыс эз видзсьы. Лыддьы выль сёрникузясӧ да ысты выль аудиоюӧр.');
+    } elseif ($isFirstRecording) {
+        vk_send($peerId, 'Бур! Мунам водзӧ:');
     }
     assign_next_phrase($id, $peerId, false);
 }

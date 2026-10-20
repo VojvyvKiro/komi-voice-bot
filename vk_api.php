@@ -39,6 +39,12 @@ function vk_call(string $method, array $params = []): array
 /** Отправить текстовое сообщение пользователю */
 function vk_send(int $userId, string $text, ?array $keyboard = null): bool
 {
+    return vk_send_message_id($userId, $text, $keyboard) !== null;
+}
+
+/** Send to one user; return the message ID needed for reply_to, or null on failure. */
+function vk_send_message_id(int $userId, string $text, ?array $keyboard = null, ?int $replyTo = null): ?int
+{
     // random_id обязателен, иначе VK склеит дубли
     $params = [
         'user_id'   => $userId,
@@ -48,8 +54,11 @@ function vk_send(int $userId, string $text, ?array $keyboard = null): bool
     if ($keyboard !== null) {
         $params['keyboard'] = json_encode($keyboard, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
     }
+    if ($replyTo !== null) $params['reply_to'] = $replyTo;
     $r = vk_call('messages.send', $params);
-    return empty($r['error']);
+    if (!empty($r['error'])) return null;
+    $messageId = $r['response'] ?? null;
+    return is_int($messageId) && $messageId > 0 ? $messageId : null;
 }
 
 /** Информация о пользователе VK */
