@@ -105,10 +105,14 @@ function recording_review(int $id, string $action): void
         $st = db()->prepare('SELECT * FROM recordings WHERE id = ? FOR UPDATE');
         $st->execute([$id]);
         $r = $st->fetch();
-        if (!$r || $r['status'] !== 'uploaded') return;
+        if (!$r) return;
+        $newStatus = $action === 'approve' ? 'approved' : 'rejected';
+        if ($r['status'] === $newStatus) return;
         db()->prepare('UPDATE recordings SET status = ? WHERE id = ?')
-            ->execute([$action === 'approve' ? 'approved' : 'rejected', $id]);
-        if ($action === 'reject') phrase_bump((int)$r['phrase_id'], -1);
+            ->execute([$newStatus, $id]);
+        // В квоту входят uploaded и approved; rejected не учитывается.
+        $delta = (int)($newStatus !== 'rejected') - (int)($r['status'] !== 'rejected');
+        if ($delta !== 0) phrase_bump((int)$r['phrase_id'], $delta);
         db()->prepare('INSERT INTO validations (recording_id, validator_id, valid, created_at)
             VALUES (?, 0, ?, NOW())')->execute([$id, (int)($action === 'approve')]);
     });

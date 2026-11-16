@@ -148,7 +148,6 @@ $dialectLabels = [
     <td><span class="badge <?= e($r['status']) ?>"><?= e($statusLabels[$r['status']] ?? $r['status']) ?></span></td>
     <td><?= e($r['created_at']) ?></td>
     <td>
-      <?php if ($r['status'] === 'uploaded'): ?>
         <form method="post">
           <input type="hidden" name="csrf" value="<?= e($adminCsrf) ?>">
           <input type="hidden" name="recording_id" value="<?= (int)$r['id'] ?>">
@@ -156,7 +155,6 @@ $dialectLabels = [
           <button class="btn ok" name="action" value="approve">Лӧсялӧ</button>
           <button class="btn rej" name="action" value="reject">Оз лӧсяв</button>
         </form>
-      <?php endif; ?>
 
     </td>
   </tr>
