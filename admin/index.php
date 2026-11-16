@@ -7,7 +7,9 @@ require_once __DIR__ . '/_init.php';
 // ── Действия (POST) ─────────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     admin_action_review();
-    header('Location: index.php');
+    $returnStatus = $_POST['return_status'] ?? 'uploaded';
+    if (!in_array($returnStatus, ['uploaded', 'approved', 'rejected', 'all'], true)) $returnStatus = 'uploaded';
+    header('Location: index.php?status=' . $returnStatus . '#recording-' . (int)($_POST['recording_id'] ?? 0));
     exit;
 }
 
@@ -18,7 +20,7 @@ if (!in_array($onlyStatus, $allowed, true)) $onlyStatus = 'uploaded';
 
 $where  = $onlyStatus === 'all' ? '' : 'WHERE r.status = ' . db()->quote($onlyStatus);
 $sql = "SELECT r.id, r.file, r.duration, r.status, r.created_at,
-               p.text AS phrase_text, p.id AS phrase_id,
+               p.text AS phrase_text, p.id AS phrase_id, r.transcript,
                s.vk_id, s.age, s.gender, s.dialect, s.region, s.consent
         FROM recordings r
         JOIN phrases p ON p.id = r.phrase_id
@@ -76,6 +78,14 @@ $dialectLabels = [
   .ok { background: #198754; color: #fff; }
   .rej { background: #dc3545; color: #fff; }
   form { display: inline; }
+  .edit-text { margin: 0; }
+  .edit-text summary { cursor: text; list-style: none; white-space: pre-wrap; border-bottom: 1px dashed #aab5c2; }
+  .edit-text summary::-webkit-details-marker { display: none; }
+  .edit-text[open] summary { display: none; }
+  .edit-text form { display: block; margin-top: 8px; }
+  .edit-text textarea { display: block; box-sizing: border-box; width: 100%; min-width: 220px; min-height: 100px; margin: 6px 0; font: inherit; }
+  .original-text { display: block; margin-top: 8px; color: #667; }
+  .save { background: #2b5f9e; color: #fff; }
 </style>
 </head>
 <body>
@@ -104,13 +114,31 @@ $dialectLabels = [
   <tr><td colspan="8">Аудиоюӧръяс абуӧсь.</td></tr>
 <?php endif; ?>
 <?php foreach ($rows as $r): ?>
-  <tr>
+  <?php $recordingText = $r['transcript'] ?? $r['phrase_text']; ?>
+  <tr id="recording-<?= (int)$r['id'] ?>">
     <td><?= (int)$r['id'] ?></td>
     <td>
       <audio controls preload="none" src="audio.php?f=<?= rawurlencode($r['file']) ?>"></audio>
       <div style="font-size:11px;color:#888"><?= e($r['file']) ?> (<?= (float)$r['duration'] ?> сек.)</div>
     </td>
-    <td style="max-width:280px"><?= e($r['phrase_text']) ?></td>
+    <td style="max-width:320px">
+      <details class="edit-text">
+        <summary title="Нажмите, чтобы исправить текст"><?= e($recordingText) ?></summary>
+        <form method="post">
+          <input type="hidden" name="csrf" value="<?= e($adminCsrf) ?>">
+          <input type="hidden" name="recording_id" value="<?= (int)$r['id'] ?>">
+          <input type="hidden" name="return_status" value="<?= e($onlyStatus) ?>">
+          <input type="hidden" name="text_version" value="<?= e(hash('sha256', $recordingText)) ?>">
+          <label for="transcript-<?= (int)$r['id'] ?>">Аудиоюӧрлӧн текст</label>
+          <textarea id="transcript-<?= (int)$r['id'] ?>" name="transcript" rows="4" required><?= e($recordingText) ?></textarea>
+          <button class="btn save" name="action" value="save_transcript">Видзны</button>
+          <button class="btn" type="button" onclick="this.form.reset(); this.closest('details').open = false;">Отмена</button>
+        </form>
+      </details>
+      <?php if ($r['transcript'] !== null && $r['transcript'] !== $r['phrase_text']): ?>
+        <small class="original-text">Медводдза текст: <?= e($r['phrase_text']) ?></small>
+      <?php endif; ?>
+    </td>
     <td>
       vk <?= (int)$r['vk_id'] ?><br>
       <?= e($genderLabels[$r['gender']] ?? $r['gender']) ?>, <?= $r['age'] !== null ? (int)$r['age'] . ' арӧс' : '—' ?>
@@ -124,15 +152,23 @@ $dialectLabels = [
         <form method="post">
           <input type="hidden" name="csrf" value="<?= e($adminCsrf) ?>">
           <input type="hidden" name="recording_id" value="<?= (int)$r['id'] ?>">
+          <input type="hidden" name="return_status" value="<?= e($onlyStatus) ?>">
           <button class="btn ok" name="action" value="approve">Лӧсялӧ</button>
           <button class="btn rej" name="action" value="reject">Оз лӧсяв</button>
         </form>
-      <?php else: ?>
-        —
       <?php endif; ?>
+
     </td>
   </tr>
 <?php endforeach; ?>
 </table>
+<script>
+document.querySelectorAll('.edit-text').forEach(editor => {
+  editor.addEventListener('toggle', () => {
+    if (editor.open) editor.querySelector('textarea').focus();
+  });
+});
+</script>
 </body>
 </html>
+

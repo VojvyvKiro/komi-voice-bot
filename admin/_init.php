@@ -46,5 +46,23 @@ function admin_action_review(): void
         http_response_code(403);
         exit('Обновите страницу и повторите действие.');
     }
+    if (($_POST['action'] ?? '') === 'save_transcript') {
+        require_once __DIR__ . '/_transcripts.php';
+        try {
+            recording_save_transcript(
+                (int)($_POST['recording_id'] ?? 0),
+                $_POST['transcript'] ?? null,
+                $_POST['text_version'] ?? null
+            );
+        } catch (InvalidArgumentException $e) {
+            http_response_code(422);
+            exit(e($e->getMessage()));
+        } catch (DomainException $e) {
+            http_response_code(409);
+            exit(e($e->getMessage()));
+        }
+        return;
+    }
     recording_review((int)($_POST['recording_id'] ?? 0), (string)($_POST['action'] ?? ''));
 }
+

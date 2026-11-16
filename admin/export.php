@@ -19,7 +19,8 @@ fputcsv($out, [
 ], ';');
 
 $sql = "SELECT r.id, r.file, r.duration, r.phrase_id,
-               p.text, s.id AS speaker_id, s.vk_id, s.age, s.gender, s.dialect, s.region
+               COALESCE(r.transcript, p.text) AS text,
+               s.id AS speaker_id, s.vk_id, s.age, s.gender, s.dialect, s.region
         FROM recordings r
         JOIN phrases  p ON p.id = r.phrase_id
         JOIN speakers s ON s.id = r.speaker_id

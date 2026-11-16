@@ -32,6 +32,7 @@ CREATE TABLE IF NOT EXISTS recordings (         -- записи
   file VARCHAR(255) NOT NULL,                   -- относительный путь к аудио
   format VARCHAR(10) NOT NULL DEFAULT 'ogg',
   duration DOUBLE NULL,
+  transcript TEXT NULL,                        -- исправленный текст конкретной записи
   status ENUM('uploaded','approved','rejected') NOT NULL DEFAULT 'uploaded',
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT fk_rec_speaker FOREIGN KEY (speaker_id) REFERENCES speakers(id) ON DELETE CASCADE,
@@ -51,4 +52,5 @@ CREATE TABLE IF NOT EXISTS validations (        -- проверки (модер�
 CREATE INDEX idx_phrases_pending ON phrases (done_count, required_times);
 CREATE INDEX idx_rec_status ON recordings (status);
 CREATE INDEX idx_rec_phrase ON recordings (phrase_id, status);
+
 
